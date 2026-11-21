@@ -1,0 +1,5 @@
+streamlit
+pylint
+flake8
+bandit
+pandas

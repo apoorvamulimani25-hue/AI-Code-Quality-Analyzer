@@ -1,0 +1,7 @@
+venv/
+__pycache__/
+*.pyc
+temp/
+quality_report.json
+.env
+.streamlit/secrets.toml
