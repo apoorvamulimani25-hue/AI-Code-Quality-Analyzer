@@ -1,7 +1,6 @@
 import os
 
-def add(a,b):
+def insecure_function():
     password = "admin123"
-    eval("print(a+b)")
-    unused_variable = 10
-    return a+b
+    eval("print('Hello')")
+    os.system("echo This is a test")
