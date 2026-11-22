@@ -1,116 +1,291 @@
 import streamlit as st
 import json
+from datetime import datetime
 
 from analyzer import analyze_code
 from ai_explainer import explain_issue
 from report_generator import generate_report
 
 
-# =====================================================
-# PAGE CONFIGURATION
-# =====================================================
+# =========================================================
+# PAGE CONFIG
+# =========================================================
 
 st.set_page_config(
     page_title="AI Code Quality Analyzer",
     page_icon="🔍",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
 
-# =====================================================
+# =========================================================
+# CUSTOM CSS
+# =========================================================
+
+st.markdown("""
+<style>
+
+.main {
+    background-color: #0e1117;
+}
+
+.block-container {
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+}
+
+[data-testid="stMetric"] {
+    background-color: #1c2333;
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid #303b52;
+}
+
+[data-testid="stMetricLabel"] {
+    color: #aab8d0;
+}
+
+[data-testid="stMetricValue"] {
+    color: #ffffff;
+}
+
+.custom-card {
+    background-color: #1c2333;
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid #303b52;
+    margin-bottom: 15px;
+}
+
+.status-excellent {
+    background-color: #123d2b;
+    color: #4ade80;
+    padding: 12px;
+    border-radius: 10px;
+    font-size: 22px;
+    font-weight: bold;
+}
+
+.status-good {
+    background-color: #183b50;
+    color: #38bdf8;
+    padding: 12px;
+    border-radius: 10px;
+    font-size: 22px;
+    font-weight: bold;
+}
+
+.status-improvement {
+    background-color: #493519;
+    color: #facc15;
+    padding: 12px;
+    border-radius: 10px;
+    font-size: 22px;
+    font-weight: bold;
+}
+
+.status-poor {
+    background-color: #491e25;
+    color: #fb7185;
+    padding: 12px;
+    border-radius: 10px;
+    font-size: 22px;
+    font-weight: bold;
+}
+
+</style>
+""", unsafe_allow_html=True)
+
+
+# =========================================================
+# SIDEBAR
+# =========================================================
+
+with st.sidebar:
+
+    st.title("🔍 Code Analyzer")
+
+    st.markdown("---")
+
+    st.subheader("📌 Project Information")
+
+    st.write("**Project:**")
+    st.write("AI-Assisted Code Quality Analysis")
+
+    st.write("**Analysis Tools:**")
+    st.write("🔹 Pylint")
+    st.write("🔹 Flake8")
+    st.write("🔹 Bandit")
+
+    st.write("**Framework:**")
+    st.write("Streamlit")
+
+    st.markdown("---")
+
+    st.subheader("📊 Quality Score")
+
+    st.write("""
+    The quality score is calculated using a weighted
+    penalty system. Security issues receive higher penalties.
+    """)
+
+    st.markdown("---")
+
+    st.caption("Mini Project | Python | DevOps | CI/CD")
+
+
+# =========================================================
 # HEADER
-# =====================================================
+# =========================================================
 
-st.title("🔍 AI-Assisted Code Quality Analyzer")
+st.title("🛡️ AI-Assisted Code Quality Analyzer")
 
-st.markdown(
-    """
-    This application analyzes Python code for code quality,
-    coding style, and security problems.
+st.markdown("""
+Analyze Python code for **quality problems, coding-style violations,
+and security vulnerabilities** using automated analysis tools.
+""")
 
-    **Tools used:** Pylint | Flake8 | Bandit
-    """
-)
-
-st.divider()
+st.markdown("---")
 
 
-# =====================================================
+# =========================================================
 # CODE INPUT
-# =====================================================
+# =========================================================
+
+st.subheader("📝 Python Code Input")
 
 code = st.text_area(
-    "Enter your Python code:",
-    height=300,
-    placeholder="Write or paste your Python code here..."
+    "Paste your Python code below:",
+    height=280,
+    placeholder="Enter your Python code here..."
 )
 
 
-# =====================================================
-# ANALYSIS BUTTON
-# =====================================================
+# =========================================================
+# ANALYZE BUTTON
+# =========================================================
 
 if st.button("🚀 Analyze Code", use_container_width=True):
 
     if not code.strip():
 
-        st.warning("Please enter Python code first.")
+        st.warning("⚠️ Please enter Python code before analyzing.")
 
     else:
 
-        with st.spinner("Analyzing code..."):
+        with st.spinner("🔎 Analyzing your code..."):
 
             results = analyze_code(code)
 
-            # Extract analysis results
             pylint_issues = results.get("pylint", [])
             flake8_issues = results.get("flake8", [])
             bandit_issues = results.get("bandit", {}).get("results", [])
 
-            # =================================================
-            # WEIGHTED QUALITY SCORE
-            # =================================================
-
-            security_weight = 10
-            pylint_weight = 3
-            flake8_weight = 1
+            # -----------------------------------------------
+            # QUALITY SCORE
+            # -----------------------------------------------
 
             total_penalty = (
-                len(bandit_issues) * security_weight
-                + len(pylint_issues) * pylint_weight
-                + len(flake8_issues) * flake8_weight
+                len(bandit_issues) * 10
+                + len(pylint_issues) * 3
+                + len(flake8_issues)
             )
 
             quality_score = max(0, 100 - total_penalty)
 
-            # =================================================
-            # QUALITY STATUS
-            # =================================================
+            # -----------------------------------------------
+            # STATUS
+            # -----------------------------------------------
 
             if quality_score >= 80:
                 status = "Excellent"
+                status_class = "status-excellent"
 
             elif quality_score >= 60:
                 status = "Good"
+                status_class = "status-good"
 
             elif quality_score >= 40:
                 status = "Needs Improvement"
+                status_class = "status-improvement"
 
             else:
                 status = "Poor"
+                status_class = "status-poor"
 
-            # Generate report
+            # -----------------------------------------------
+            # REPORT
+            # -----------------------------------------------
+
             report = generate_report(results)
 
-            # Add score information to the report
             report["quality_score"] = quality_score
             report["quality_status"] = status
 
-        st.success("Analysis completed successfully!")
+            report["summary"] = {
+                "pylint_issues": len(pylint_issues),
+                "flake8_issues": len(flake8_issues),
+                "security_issues": len(bandit_issues)
+            }
 
-        # =================================================
-        # CODE QUALITY SUMMARY
-        # =================================================
+            # Save the complete report to JSON
+            with open(
+                "quality_report.json",
+                "w",
+                encoding="utf-8"
+            ) as file:
+
+                json.dump(report, file, indent=4)
+
+            # Save results to session state
+            st.session_state["analysis_results"] = results
+            st.session_state["quality_score"] = quality_score
+            st.session_state["quality_status"] = status
+            st.session_state["status_class"] = status_class
+            st.session_state["report"] = report
+
+
+# =========================================================
+# DISPLAY RESULTS
+# =========================================================
+
+if "analysis_results" in st.session_state:
+
+    results = st.session_state["analysis_results"]
+
+    quality_score = st.session_state["quality_score"]
+
+    status = st.session_state["quality_status"]
+
+    status_class = st.session_state["status_class"]
+
+    report = st.session_state["report"]
+
+    pylint_issues = results.get("pylint", [])
+
+    flake8_issues = results.get("flake8", [])
+
+    bandit_issues = results.get("bandit", {}).get("results", [])
+
+    st.success("✅ Analysis completed successfully!")
+
+    # =====================================================
+    # TABS
+    # =====================================================
+
+    tab1, tab2, tab3 = st.tabs([
+        "📊 Overview",
+        "🧠 Issues & Explanations",
+        "📄 JSON Report"
+    ])
+
+
+    # =====================================================
+    # TAB 1 - OVERVIEW
+    # =====================================================
+
+    with tab1:
 
         st.subheader("📊 Code Quality Summary")
 
@@ -136,106 +311,194 @@ if st.button("🚀 Analyze Code", use_container_width=True):
             len(bandit_issues)
         )
 
+        st.markdown("### Overall Quality Status")
+
         st.markdown(
-            f"### Overall Status: **{status}**"
+            f'<div class="{status_class}">Status: {status}</div>',
+            unsafe_allow_html=True
         )
 
         st.progress(quality_score / 100)
 
-        st.divider()
+        st.write(f"Your code quality score is **{quality_score}%**.")
 
-        # =================================================
-        # ISSUE SEVERITY
-        # =================================================
+        st.markdown("---")
 
-        st.subheader("🚨 Issue Severity")
+        # -----------------------------------------------
+        # SEVERITY
+        # -----------------------------------------------
 
-        high_severity = len(bandit_issues)
-        medium_severity = len(flake8_issues)
-        low_severity = len(pylint_issues)
+        st.subheader("🚨 Issue Severity Summary")
 
         severity_col1, severity_col2, severity_col3 = st.columns(3)
 
         severity_col1.metric(
             "🔴 High Severity",
-            high_severity
+            len(bandit_issues)
         )
 
         severity_col2.metric(
             "🟠 Medium Severity",
-            medium_severity
+            len(flake8_issues)
         )
 
         severity_col3.metric(
             "🟡 Low Severity",
-            low_severity
+            len(pylint_issues)
         )
 
-        st.divider()
+        st.markdown("---")
 
-        # =================================================
-        # AI-ASSISTED EXPLANATIONS
-        # =================================================
+        # -----------------------------------------------
+        # TOOL INFORMATION
+        # -----------------------------------------------
 
-        st.subheader("🧠 AI-Assisted Explanations")
+        st.subheader("🛠️ Analysis Tools")
+
+        tool_col1, tool_col2, tool_col3 = st.columns(3)
+
+        with tool_col1:
+
+            st.markdown("### 🔎 Pylint")
+
+            st.write("Checks Python code quality.")
+
+            st.metric(
+                "Issues Found",
+                len(pylint_issues)
+            )
+
+        with tool_col2:
+
+            st.markdown("### 📏 Flake8")
+
+            st.write("Checks coding style and formatting.")
+
+            st.metric(
+                "Issues Found",
+                len(flake8_issues)
+            )
+
+        with tool_col3:
+
+            st.markdown("### 🔐 Bandit")
+
+            st.write("Detects potential security problems.")
+
+            st.metric(
+                "Issues Found",
+                len(bandit_issues)
+            )
+
+
+    # =====================================================
+    # TAB 2 - ISSUES & EXPLANATIONS
+    # =====================================================
+
+    with tab2:
+
+        st.subheader("🧠 Issues & Explanations")
 
         all_issues = []
 
-        # Pylint issues
+        # -----------------------------------------------
+        # PYLINT
+        # -----------------------------------------------
+
         for issue in pylint_issues:
 
-            message = issue.get("message", "")
-            line = issue.get("line", "?")
-            category = issue.get("type", "Pylint")
+            all_issues.append({
+                "tool": "Pylint",
+                "line": issue.get("line", "?"),
+                "type": issue.get("type", "Code Quality"),
+                "message": issue.get("message", "")
+            })
 
-            all_issues.append(
-                f"Pylint | Line {line} | {category} | {message}"
-            )
+        # -----------------------------------------------
+        # FLAKE8
+        # -----------------------------------------------
 
-        # Flake8 issues
         for issue in flake8_issues:
 
-            message = issue.get("message", "")
-            line = issue.get("line", "?")
-            error_code = issue.get("code", "")
+            all_issues.append({
+                "tool": "Flake8",
+                "line": issue.get("line", "?"),
+                "type": issue.get("code", "Style"),
+                "message": issue.get("message", "")
+            })
 
-            all_issues.append(
-                f"Flake8 | Line {line} | {error_code} | {message}"
-            )
+        # -----------------------------------------------
+        # BANDIT
+        # -----------------------------------------------
 
-        # Bandit issues
         for issue in bandit_issues:
 
-            message = issue.get("issue_text", "")
-            line = issue.get("line_number", "?")
-            severity = issue.get("issue_severity", "Unknown")
+            all_issues.append({
+                "tool": "Bandit",
+                "line": issue.get("line_number", "?"),
+                "type": issue.get("issue_severity", "Security"),
+                "message": issue.get("issue_text", "")
+            })
 
-            all_issues.append(
-                f"Bandit | Line {line} | {severity} | {message}"
-            )
+        # -----------------------------------------------
+        # DISPLAY
+        # -----------------------------------------------
 
-        # Display explanations
         if all_issues:
 
-            for issue in all_issues:
+            st.write(
+                f"Total findings reported by tools: **{len(all_issues)}**"
+            )
 
-                with st.expander(issue):
+            for index, issue in enumerate(all_issues, start=1):
 
-                    explanation = explain_issue(issue)
+                title = (
+                    f"{index}. {issue['tool']} | "
+                    f"Line {issue['line']} | "
+                    f"{issue['type']} | "
+                    f"{issue['message']}"
+                )
 
-                    st.write(explanation)
+                with st.expander(title):
+
+                    st.markdown(
+                        f"**Analysis Tool:** {issue['tool']}"
+                    )
+
+                    st.markdown(
+                        f"**Line Number:** {issue['line']}"
+                    )
+
+                    st.markdown(
+                        f"**Issue Type:** {issue['type']}"
+                    )
+
+                    st.markdown(
+                        f"**Description:** {issue['message']}"
+                    )
+
+                    st.markdown("---")
+
+                    st.markdown("### 💡 Explanation")
+
+                    explanation = explain_issue(
+                        f"{issue['tool']} {issue['type']} {issue['message']}"
+                    )
+
+                    st.info(explanation)
 
         else:
 
-            st.info("🎉 No issues detected!")
+            st.success("🎉 No issues detected! Your code looks clean.")
 
-        st.divider()
 
-        # =================================================
-        # JSON REPORT
-        # =================================================
+    # =====================================================
+    # TAB 3 - JSON REPORT
+    # =====================================================
 
-        st.subheader("📄 JSON Report")
+    with tab3:
+
+        st.subheader("📄 JSON Analysis Report")
 
         json_report = json.dumps(
             report,
@@ -246,12 +509,24 @@ if st.button("🚀 Analyze Code", use_container_width=True):
             label="⬇️ Download JSON Report",
             data=json_report,
             file_name="quality_report.json",
-            mime="application/json"
+            mime="application/json",
+            use_container_width=True
         )
 
-        st.code(
-            json_report,
-            language="json"
-        )
+        st.markdown("---")
 
-        st.success("Your analysis report is ready!")
+        st.write("### Report Preview")
+
+        st.json(report)
+
+
+# =========================================================
+# FOOTER
+# =========================================================
+
+st.markdown("---")
+
+st.caption(
+    "AI-Assisted Code Quality Analyzer | "
+    "Python | Pylint | Flake8 | Bandit | Streamlit"
+)
